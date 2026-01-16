@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iran Influence Watcher</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 300px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #15202b;
+      color: #e7e9ea;
+      padding: 16px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #38444d;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle-label {
+      font-size: 12px;
+      color: #8899a6;
+    }
+
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #38444d;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle.active {
+      background: #1d9bf0;
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle.active::after {
+      transform: translateX(20px);
+    }
+
+    .stats {
+      margin-bottom: 16px;
+    }
+
+    .stats h2 {
+      font-size: 12px;
+      color: #8899a6;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #38444d;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .stat-badge-ir {
+      background: #dc2626;
+    }
+
+    .stat-badge-mek {
+      background: #ea580c;
+    }
+
+    .stat-value {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .data-info {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #192734;
+      border-radius: 8px;
+    }
+
+    .data-info h2 {
+      font-size: 12px;
+      color: #8899a6;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .data-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .data-value {
+      color: #1d9bf0;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 10px 12px;
+      border: none;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary {
+      background: #1d9bf0;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1a8cd8;
+    }
+
+    .btn-secondary {
+      background: #38444d;
+      color: #e7e9ea;
+    }
+
+    .btn-secondary:hover {
+      background: #4a5568;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #38444d;
+      font-size: 11px;
+      color: #8899a6;
+      text-align: center;
+    }
+
+    .footer a {
+      color: #1d9bf0;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #8899a6;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .status-dot.active {
+      background: #00ba7c;
+    }
+
+    .status-dot.inactive {
+      background: #f4212e;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading" class="loading">Loading...</div>
+
+  <div id="content" style="display: none;">
+    <div class="header">
+      <h1>
+        <span id="status-dot" class="status-dot active"></span>
+        Iran Watcher
+      </h1>
+      <div class="toggle-container">
+        <span class="toggle-label">Enabled</span>
+        <div id="toggle" class="toggle active"></div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <h2>Session Stats</h2>
+      <div class="stat-row">
+        <div class="stat-label">
+          <span class="stat-badge stat-badge-ir">IR</span>
+          <span>Tagged</span>
+        </div>
+        <span id="ir-tagged" class="stat-value">0</span>
+      </div>
+      <div class="stat-row">
+        <div class="stat-label">
+          <span class="stat-badge stat-badge-mek">MEK</span>
+          <span>Tagged</span>
+        </div>
+        <span id="mek-tagged" class="stat-value">0</span>
+      </div>
+    </div>
+
+    <div class="data-info">
+      <h2>Database</h2>
+      <div class="data-row">
+        <span>Islamic Republic:</span>
+        <span id="total-ir" class="data-value">0</span>
+      </div>
+      <div class="data-row">
+        <span>MEK Opposition:</span>
+        <span id="total-mek" class="data-value">0</span>
+      </div>
+      <div class="data-row">
+        <span>Last updated:</span>
+        <span id="last-updated" class="data-value">-</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="refresh-btn" class="btn btn-primary">Refresh Data</button>
+      <button id="reset-btn" class="btn btn-secondary">Reset Stats</button>
+    </div>
+
+    <div class="footer">
+      Data: Iran Influence Networks Research
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
