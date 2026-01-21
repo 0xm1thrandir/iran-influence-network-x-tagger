@@ -34,6 +34,11 @@
   background-color: #ea580c;
 }
 
+/* White Internet - Purple badge */
+.net-tag-wi {
+  background-color: #7c3aed;
+}
+
 /* Fade in animation */
 @keyframes netTagFadeIn {
   from {

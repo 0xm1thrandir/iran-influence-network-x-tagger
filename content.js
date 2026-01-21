@@ -7,10 +7,11 @@
   // State
   let irUserData = null;  // Map: username -> user data
   let mekUserData = null; // Map: username -> user data
+  let wiUserData = null;  // Map: username -> user data (White Internet)
   let enabled = true;
   let observer = null;
   let debounceTimer = null;
-  let taggedUsernames = new Set(); // Track which usernames we've tagged in this container
+  let taggedUsernames = new Set();
 
   // Configuration
   const DEBOUNCE_MS = 150;
@@ -29,6 +30,11 @@
       label: 'MEK',
       className: 'net-tag-mek',
       networkName: 'MEK Opposition Network'
+    },
+    wi: {
+      label: 'WI',
+      className: 'net-tag-wi',
+      networkName: 'White Internet Database'
     }
   };
 
@@ -47,9 +53,10 @@
       // Store user data maps
       irUserData = response.irUserData || {};
       mekUserData = response.mekUserData || {};
+      wiUserData = response.wiUserData || {};
       enabled = response.enabled;
 
-      console.log(`[NetTagger] Data loaded - IR: ${Object.keys(irUserData).length}, MEK: ${Object.keys(mekUserData).length}, Enabled: ${enabled}`);
+      console.log(`[NetTagger] Data loaded - IR: ${Object.keys(irUserData).length}, MEK: ${Object.keys(mekUserData).length}, WI: ${Object.keys(wiUserData).length}, Enabled: ${enabled}`);
 
       // Inject tooltip styles
       injectTooltipStyles();
@@ -115,6 +122,7 @@
       }
       .net-tag-tooltip-badge.ir { background: #dc2626; }
       .net-tag-tooltip-badge.mek { background: #ea580c; }
+      .net-tag-tooltip-badge.wi { background: #7c3aed; }
       .net-tag-tooltip-network {
         font-weight: 600;
         color: #ffffff;
@@ -148,6 +156,14 @@
       }
       .net-tag-tooltip-location strong {
         color: #e0e0e0;
+      }
+      .net-tag-tooltip-note {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #3a3a5a;
+        font-size: 10px;
+        color: #6b7280;
+        font-style: italic;
       }
     `;
     document.head.appendChild(style);
@@ -274,7 +290,7 @@
     // Check if this specific element already has a badge nearby
     if (hasBadgeNearby(usernameEl, username)) return;
 
-    // Check against both networks
+    // Check against all networks (priority: IR > MEK > WI)
     let network = null;
     let userData = null;
 
@@ -284,6 +300,9 @@
     } else if (mekUserData[username]) {
       network = 'mek';
       userData = mekUserData[username];
+    } else if (wiUserData[username]) {
+      network = 'wi';
+      userData = wiUserData[username];
     }
 
     if (network && userData) {
@@ -385,46 +404,97 @@
       return num.toString();
     };
 
-    // Format date
-    const formatDate = (dateStr) => {
-      if (!dateStr) return 'Unknown';
-      try {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      } catch {
-        return dateStr.split(' ').slice(1, 3).join(' ') + ' ' + dateStr.split(' ').slice(-1)[0];
-      }
-    };
+    // Different tooltip content based on network type
+    if (network === 'wi') {
+      // White Internet has different schema
+      const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : 'Unknown';
 
-    tooltip.innerHTML = `
-      <div class="net-tag-tooltip-header">
-        <span class="net-tag-tooltip-badge ${network}">${badge.label}</span>
-        <span class="net-tag-tooltip-network">${badge.networkName}</span>
-      </div>
-      <div class="net-tag-tooltip-stats">
-        <div class="net-tag-tooltip-stat">
-          <span class="net-tag-tooltip-stat-label">Followers</span>
-          <span class="net-tag-tooltip-stat-value">${formatNumber(userData.follower_count)}</span>
+      tooltip.innerHTML = `
+        <div class="net-tag-tooltip-header">
+          <span class="net-tag-tooltip-badge ${network}">${badge.label}</span>
+          <span class="net-tag-tooltip-network">${badge.networkName}</span>
         </div>
-        <div class="net-tag-tooltip-stat">
-          <span class="net-tag-tooltip-stat-label">Following</span>
-          <span class="net-tag-tooltip-stat-value">${formatNumber(userData.following_count)}</span>
+        <div class="net-tag-tooltip-stats">
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Status</span>
+            <span class="net-tag-tooltip-stat-value">${capitalize(userData.account_status)}</span>
+          </div>
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Device</span>
+            <span class="net-tag-tooltip-stat-value">${capitalize(userData.primary_device)}</span>
+          </div>
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Location</span>
+            <span class="net-tag-tooltip-stat-value">${capitalize(userData.location_status)}</span>
+          </div>
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Created</span>
+            <span class="net-tag-tooltip-stat-value">${userData.creation_date || 'Unknown'}</span>
+          </div>
+          ${userData.username_change_count > 0 ? `
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Name Changes</span>
+            <span class="net-tag-tooltip-stat-value">${userData.username_change_count}</span>
+          </div>
+          ` : ''}
+          ${userData.gender && userData.gender !== 'unknown' ? `
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Gender</span>
+            <span class="net-tag-tooltip-stat-value">${capitalize(userData.gender)}</span>
+          </div>
+          ` : ''}
         </div>
-        <div class="net-tag-tooltip-stat">
-          <span class="net-tag-tooltip-stat-label">Tweets</span>
-          <span class="net-tag-tooltip-stat-value">${formatNumber(userData.number_of_tweets)}</span>
+        ${userData.same_person_account ? `
+          <div class="net-tag-tooltip-location">
+            <strong>Linked account:</strong> ${userData.same_person_account}
+          </div>
+        ` : ''}
+        <div class="net-tag-tooltip-note">
+          Source: White Internet Database (not actively maintained)
         </div>
-        <div class="net-tag-tooltip-stat">
-          <span class="net-tag-tooltip-stat-label">Created</span>
-          <span class="net-tag-tooltip-stat-value">${formatDate(userData.creation_date)}</span>
+      `;
+    } else {
+      // IR and MEK networks
+      const formatDate = (dateStr) => {
+        if (!dateStr) return 'Unknown';
+        try {
+          const date = new Date(dateStr);
+          return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        } catch {
+          return dateStr.split(' ').slice(1, 3).join(' ') + ' ' + dateStr.split(' ').slice(-1)[0];
+        }
+      };
+
+      tooltip.innerHTML = `
+        <div class="net-tag-tooltip-header">
+          <span class="net-tag-tooltip-badge ${network}">${badge.label}</span>
+          <span class="net-tag-tooltip-network">${badge.networkName}</span>
         </div>
-      </div>
-      ${userData.account_based_in ? `
-        <div class="net-tag-tooltip-location">
-          <strong>Location:</strong> ${userData.account_based_in}
+        <div class="net-tag-tooltip-stats">
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Followers</span>
+            <span class="net-tag-tooltip-stat-value">${formatNumber(userData.follower_count)}</span>
+          </div>
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Following</span>
+            <span class="net-tag-tooltip-stat-value">${formatNumber(userData.following_count)}</span>
+          </div>
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Tweets</span>
+            <span class="net-tag-tooltip-stat-value">${formatNumber(userData.number_of_tweets)}</span>
+          </div>
+          <div class="net-tag-tooltip-stat">
+            <span class="net-tag-tooltip-stat-label">Created</span>
+            <span class="net-tag-tooltip-stat-value">${formatDate(userData.creation_date)}</span>
+          </div>
         </div>
-      ` : ''}
-    `;
+        ${userData.account_based_in ? `
+          <div class="net-tag-tooltip-location">
+            <strong>Location:</strong> ${userData.account_based_in}
+          </div>
+        ` : ''}
+      `;
+    }
 
     document.body.appendChild(tooltip);
 

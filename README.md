@@ -8,17 +8,18 @@ A Chrome extension that identifies and tags accounts linked to Iranian influence
 
 ## Overview
 
-This extension helps users identify accounts that are part of documented Iranian online influence networks while browsing X.com. It covers two distinct networks:
+This extension helps users identify accounts that are part of documented Iranian online influence networks while browsing X.com. It covers three distinct networks:
 
 - **IR Network** (Red badge): Accounts linked to Islamic Republic state media patterns
 - **MEK Network** (Orange badge): Accounts linked to MEK opposition group patterns
+- **White Internet** (Purple badge): Accounts from the White Internet database
 
 Data is sourced from the [Islamic Republic Influence Networks](https://github.com/goldenowlosint/Islamic-Republic-Influence-Networks) research project.
 
 ## Features
 
 - **Visual Badges**: Colored badges appear next to usernames from tracked networks
-- **Rich Tooltips**: Hover over badges to see account statistics (followers, following, tweets, account age, location)
+- **Rich Tooltips**: Hover over badges to see account statistics
 - **Real-time Detection**: Automatically detects accounts as you scroll through your timeline
 - **Performance Optimized**: Uses debouncing, batch processing, and idle callbacks
 - **Toggle On/Off**: Easily enable or disable from the popup
@@ -30,14 +31,21 @@ Data is sourced from the [Islamic Republic Influence Networks](https://github.co
 ```
 @username [IR]     ← Red badge (Islamic Republic Network)
 @username [MEK]    ← Orange badge (MEK Network)
+@username [WI]     ← Purple badge (White Internet Database)
 ```
 
-**Hover Tooltip:**
-- Network affiliation
+**Hover Tooltip (IR/MEK):**
 - Follower/Following count
 - Tweet count
 - Account creation date
 - Detected location
+
+**Hover Tooltip (White Internet):**
+- Account status (active/deleted)
+- Primary device
+- Location status
+- Username change count
+- Linked accounts (if detected)
 
 ## Installation
 
@@ -56,8 +64,19 @@ The extension includes bundled data files:
 |---------|------|----------|-------------|
 | IR | `ir-network.json` | ~2,900 | Islamic Republic state-linked accounts |
 | MEK | `mek.json` | ~1,900 | MEK opposition-linked accounts |
+| WI | `white-internet.json` | ~2,400 | White Internet database accounts |
 
-**Total: ~4,800 tracked accounts**
+**Total: ~7,200 tracked accounts**
+
+### White Internet Data Notes
+
+The White Internet dataset includes account handles, display names, username-change history, account status, device type, location indicators, inferred gender, and permanent user IDs. Key fields:
+
+- `location_status`: Reliability codes (`iran`, `non_iran_only`, `continent_only`)
+- `same_person_account`: Linked handles when flagged
+- `account_status`: Whether account is active or deleted
+
+Note: This dataset is not actively maintained by the upstream source.
 
 ## Architecture
 
@@ -73,7 +92,8 @@ iran-influence-watcher/
 ├── icons/              # Extension icons
 └── data/
     ├── ir-network.json
-    └── mek.json
+    ├── mek.json
+    └── white-internet.json
 ```
 
 ## Performance
@@ -99,9 +119,10 @@ This tool is intended for:
 
 **Do not use for harassment, targeting, or discrimination.**
 
-## Data Source
+## Data Sources
 
-Account data is from the [Islamic Republic Influence Networks](https://github.com/goldenowlosint/Islamic-Republic-Influence-Networks) research project, which documents online influence patterns through systematic analysis.
+- [Islamic Republic Influence Networks](https://github.com/goldenowlosint/Islamic-Republic-Influence-Networks)
+- [White Internet Database](https://github.com/tasokait/white_internet_database)
 
 ## License
 

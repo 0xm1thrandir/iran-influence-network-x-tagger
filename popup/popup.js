@@ -7,8 +7,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statusDotEl = document.getElementById('status-dot');
   const irTaggedEl = document.getElementById('ir-tagged');
   const mekTaggedEl = document.getElementById('mek-tagged');
+  const wiTaggedEl = document.getElementById('wi-tagged');
   const totalIrEl = document.getElementById('total-ir');
   const totalMekEl = document.getElementById('total-mek');
+  const totalWiEl = document.getElementById('total-wi');
   const lastUpdatedEl = document.getElementById('last-updated');
   const refreshBtn = document.getElementById('refresh-btn');
   const resetBtn = document.getElementById('reset-btn');
@@ -22,8 +24,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update UI
         irTaggedEl.textContent = response.stats.irTagged.toLocaleString();
         mekTaggedEl.textContent = response.stats.mekTagged.toLocaleString();
+        wiTaggedEl.textContent = (response.stats.wiTagged || 0).toLocaleString();
         totalIrEl.textContent = response.totalIR.toLocaleString();
         totalMekEl.textContent = response.totalMEK.toLocaleString();
+        totalWiEl.textContent = (response.totalWI || 0).toLocaleString();
 
         // Format last updated
         if (response.lastUpdated) {
@@ -110,11 +114,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         stats: {
           irTagged: 0,
           mekTagged: 0,
+          wiTagged: 0,
           sessionStart: Date.now()
         }
       });
       irTaggedEl.textContent = '0';
       mekTaggedEl.textContent = '0';
+      wiTaggedEl.textContent = '0';
     } catch (error) {
       console.error('Error resetting stats:', error);
     }

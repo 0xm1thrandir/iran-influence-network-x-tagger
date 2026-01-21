@@ -1,7 +1,7 @@
 // X Influence Network Tagger - Service Worker
 // Handles data loading, storage, and message passing
 
-const DATA_VERSION = '1.0.0';
+const DATA_VERSION = '1.1.0';
 
 // Initialize data on install
 chrome.runtime.onInstalled.addListener(async (details) => {
@@ -20,22 +20,25 @@ async function initializeData() {
   try {
     console.log('[NetTagger] Initializing data...');
 
-    // Load both JSON files
-    const [irResponse, mekResponse] = await Promise.all([
+    // Load all JSON files
+    const [irResponse, mekResponse, wiResponse] = await Promise.all([
       fetch(chrome.runtime.getURL('data/ir-network.json')),
-      fetch(chrome.runtime.getURL('data/mek.json'))
+      fetch(chrome.runtime.getURL('data/mek.json')),
+      fetch(chrome.runtime.getURL('data/white-internet.json'))
     ]);
 
-    if (!irResponse.ok || !mekResponse.ok) {
+    if (!irResponse.ok || !mekResponse.ok || !wiResponse.ok) {
       throw new Error('Failed to load JSON data files');
     }
 
     const irData = await irResponse.json();
     const mekData = await mekResponse.json();
+    const wiData = await wiResponse.json();
 
     // Build username -> user data maps (normalized lowercase keys)
     const irUserData = {};
     const mekUserData = {};
+    const wiUserData = {};
 
     for (const account of irData) {
       const key = account.username.toLowerCase();
@@ -67,21 +70,45 @@ async function initializeData() {
       };
     }
 
+    // White Internet has different schema - username has @ prefix
+    for (const account of wiData) {
+      // Remove @ prefix from username
+      const rawUsername = account.username || '';
+      const username = rawUsername.startsWith('@') ? rawUsername.slice(1) : rawUsername;
+      const key = username.toLowerCase();
+
+      wiUserData[key] = {
+        username: username,
+        name: account.display_name || '',
+        account_status: account.account_status || 'unknown',
+        primary_device: account.primary_device || 'unknown',
+        location_status: account.location_status || 'unknown',
+        gender: account.gender || 'unknown',
+        creation_date: account.account_creation_date || '',
+        username_change_count: account.username_change_count || 0,
+        last_username_change: account.last_username_change || '',
+        same_person_account: account.same_person_account || null,
+        same_person_detected: account.same_person_detected || false
+      };
+    }
+
     // Store in chrome.storage.local
     await chrome.storage.local.set({
       irUserData: irUserData,
       mekUserData: mekUserData,
+      wiUserData: wiUserData,
       dataVersion: DATA_VERSION,
       lastUpdated: Date.now(),
       enabled: true,
       stats: {
         irTagged: 0,
         mekTagged: 0,
+        wiTagged: 0,
         sessionStart: Date.now()
       }
     });
 
-    console.log(`[NetTagger] Data loaded - IR: ${Object.keys(irUserData).length}, MEK: ${Object.keys(mekUserData).length}`);
+    console.log(`[NetTagger] Data loaded - IR: ${Object.keys(irUserData).length}, MEK: ${Object.keys(mekUserData).length}, WI: ${Object.keys(wiUserData).length}`);
 
   } catch (error) {
     console.error('[NetTagger] Error initializing data:', error);
@@ -118,16 +145,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function handleGetData(sendResponse) {
   try {
-    const data = await chrome.storage.local.get(['irUserData', 'mekUserData', 'enabled']);
+    const data = await chrome.storage.local.get(['irUserData', 'mekUserData', 'wiUserData', 'enabled']);
 
     // If data not loaded yet, initialize
-    if (!data.irUserData || !data.mekUserData) {
+    if (!data.irUserData || !data.mekUserData || !data.wiUserData) {
       await initializeData();
-      const freshData = await chrome.storage.local.get(['irUserData', 'mekUserData', 'enabled']);
+      const freshData = await chrome.storage.local.get(['irUserData', 'mekUserData', 'wiUserData', 'enabled']);
       sendResponse({
         success: true,
         irUserData: freshData.irUserData || {},
         mekUserData: freshData.mekUserData || {},
+        wiUserData: freshData.wiUserData || {},
         enabled: freshData.enabled !== false
       });
     } else {
@@ -135,6 +163,7 @@ async function handleGetData(sendResponse) {
         success: true,
         irUserData: data.irUserData,
         mekUserData: data.mekUserData,
+        wiUserData: data.wiUserData,
         enabled: data.enabled !== false
       });
     }
@@ -147,12 +176,14 @@ async function handleGetData(sendResponse) {
 async function handleUpdateStats(network, sendResponse) {
   try {
     const data = await chrome.storage.local.get(['stats']);
-    const stats = data.stats || { irTagged: 0, mekTagged: 0, sessionStart: Date.now() };
+    const stats = data.stats || { irTagged: 0, mekTagged: 0, wiTagged: 0, sessionStart: Date.now() };
 
     if (network === 'ir') {
       stats.irTagged++;
     } else if (network === 'mek') {
       stats.mekTagged++;
+    } else if (network === 'wi') {
+      stats.wiTagged++;
     }
 
     await chrome.storage.local.set({ stats });
@@ -164,12 +195,13 @@ async function handleUpdateStats(network, sendResponse) {
 
 async function handleGetStats(sendResponse) {
   try {
-    const data = await chrome.storage.local.get(['stats', 'irUserData', 'mekUserData', 'enabled', 'lastUpdated']);
+    const data = await chrome.storage.local.get(['stats', 'irUserData', 'mekUserData', 'wiUserData', 'enabled', 'lastUpdated']);
     sendResponse({
       success: true,
-      stats: data.stats || { irTagged: 0, mekTagged: 0, sessionStart: Date.now() },
+      stats: data.stats || { irTagged: 0, mekTagged: 0, wiTagged: 0, sessionStart: Date.now() },
       totalIR: data.irUserData ? Object.keys(data.irUserData).length : 0,
       totalMEK: data.mekUserData ? Object.keys(data.mekUserData).length : 0,
+      totalWI: data.wiUserData ? Object.keys(data.wiUserData).length : 0,
       enabled: data.enabled !== false,
       lastUpdated: data.lastUpdated
     });
@@ -196,6 +228,7 @@ async function handleRefreshData(sendResponse) {
       stats: {
         irTagged: 0,
         mekTagged: 0,
+        wiTagged: 0,
         sessionStart: Date.now()
       }
     });
