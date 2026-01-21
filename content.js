@@ -409,6 +409,28 @@
       // White Internet has different schema
       const capitalize = (str) => str ? str.charAt(0).toUpperCase() + str.slice(1) : 'Unknown';
 
+      // Map location_status to human-readable labels
+      const formatLocation = (status) => {
+        const locationLabels = {
+          'iran': 'Iran (confirmed)',
+          'non_iran_only': 'Outside Iran only',
+          'continent_only': 'Continent only',
+          'unknown': 'Unknown'
+        };
+        return locationLabels[status] || capitalize(status);
+      };
+
+      // Map device to cleaner labels
+      const formatDevice = (device) => {
+        const deviceLabels = {
+          'android': 'Android',
+          'iphone': 'iPhone',
+          'web': 'Web browser',
+          'unknown': 'Unknown'
+        };
+        return deviceLabels[device] || capitalize(device);
+      };
+
       tooltip.innerHTML = `
         <div class="net-tag-tooltip-header">
           <span class="net-tag-tooltip-badge ${network}">${badge.label}</span>
@@ -421,11 +443,11 @@
           </div>
           <div class="net-tag-tooltip-stat">
             <span class="net-tag-tooltip-stat-label">Device</span>
-            <span class="net-tag-tooltip-stat-value">${capitalize(userData.primary_device)}</span>
+            <span class="net-tag-tooltip-stat-value">${formatDevice(userData.primary_device)}</span>
           </div>
           <div class="net-tag-tooltip-stat">
             <span class="net-tag-tooltip-stat-label">Location</span>
-            <span class="net-tag-tooltip-stat-value">${capitalize(userData.location_status)}</span>
+            <span class="net-tag-tooltip-stat-value">${formatLocation(userData.location_status)}</span>
           </div>
           <div class="net-tag-tooltip-stat">
             <span class="net-tag-tooltip-stat-label">Created</span>
